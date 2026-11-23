@@ -1130,6 +1130,36 @@ class TestFish < TestBase
     tmux.prepare
   end
 
+  def test_ctrl_r_preview_uses_current_syntax_colors
+    before = "#{tempname}-colors-before"
+    after = "#{tempname}-colors-after"
+    skip('requires the fish_indent builtin') unless system('fish', '--no-config', '-c', 'builtin -q fish_indent', out: File::NULL, err: File::NULL)
+    tmux.send_keys 'set -e NO_COLOR; set -gu fish_color_quote magenta --bold; set -gu fish_color_comment cyan --italics', :Enter
+    tmux.prepare
+    tmux.send_keys "set --show fish_color_quote fish_color_comment > #{before}", :Enter
+    tmux.prepare
+    set_var('FZF_CTRL_R_OPTS', '--no-height --preview-window=up,4,border-none --bind=focus:show-preview,resize:show-preview')
+    tmux.send_keys "echo 'fzf preview colors' # preview comment", :Enter
+    tmux.prepare
+    tmux.send_keys 'C-r', 'fzf preview colors'
+    tmux.until do |lines|
+      assert lines.first(4).any? { |line| line.include?("echo 'fzf preview colors'") }
+      preview = tmux.capture_ansi.first(4).join("\n")
+      assert_match(/\e\[[\d;]*35m/, preview)
+      assert_match(/\e\[[\d;]*36m/, preview)
+      styles = preview.scan(/\e\[([\d;]*)m/).flatten.flat_map { |style| style.split(';') }
+      assert_includes styles, '1' # bold quotes
+      assert_includes styles, '3' # italic comments
+    end
+    tmux.send_keys :Escape
+    tmux.prepare
+    tmux.send_keys "set --show fish_color_quote fish_color_comment > #{after}", :Enter
+    tmux.until { assert File.exist?(after) }
+    assert_equal File.read(before), File.read(after)
+  ensure
+    FileUtils.rm_f([before, after])
+  end
+
   def test_ctrl_r_multi
     tmux.send_keys ':', :Enter
     tmux.send_keys 'echo "foo', :Enter, 'bar"', :Enter
