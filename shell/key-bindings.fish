@@ -55,8 +55,9 @@ function fzf_key_bindings
     set -l -- match_regex '(?<fzf_query>[\\s\\S]*?(?=\\n?$)$)'
     set -l -- prefix_regex '^-[^\\s=]+=|^-(?!-)\\S'
 
-    # Don't use option prefix if " -- " is preceded.
-    string match -qv -- '* -- *' (string sub -l (commandline -Cp) -- (commandline -p))
+    # Don't use an option prefix after a standalone "--" token.
+    # Prefer -xpc once Fish 4.0 is required; -o still supports Fish 3.4.
+    not commandline -opc | string match -q -- --
     and set -- match_regex "(?<prefix>$prefix_regex)?$match_regex"
 
     # Set $prefix and expanded $fzf_query with preserved trailing newlines.

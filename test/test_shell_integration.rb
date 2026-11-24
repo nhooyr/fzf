@@ -1130,6 +1130,27 @@ class TestFish < TestBase
     tmux.prepare
   end
 
+  def test_option_prefix_after_separator
+    capture = tempname
+    tmux.send_keys %(function fzf_test_parse; __fzf_parse_commandline | string unescape > #{capture}; end; bind \\cg fzf_test_parse), :Enter
+    {
+      "grep -e ' -- ' --file=fzf-no-such-path" => ['fzf-no-such-path', '--file='],
+      "grep -e 'x; -- y' --file=fzf-no-such-path" => ['fzf-no-such-path', '--file='],
+      "grep '' --file=fzf-no-such-path" => ['fzf-no-such-path', '--file='],
+      'grep -- --file=fzf-no-such-path' => ['--file=fzf-no-such-path', ''],
+      "grep '--' --file=fzf-no-such-path" => ['--file=fzf-no-such-path', ''],
+      'grep --; grep --file=fzf-no-such-path' => ['fzf-no-such-path', '--file=']
+    }.each do |input, expected|
+      tmux.prepare
+      FileUtils.rm_f(capture)
+      tmux.send_keys input, 'C-g'
+      wait { File.exist?(capture) && File.readlines(capture).length == 3 }
+      assert_equal ['.', *expected], File.readlines(capture, chomp: true)
+    end
+  ensure
+    FileUtils.rm_f(capture)
+  end
+
   def test_ctrl_r_multi
     tmux.send_keys ':', :Enter
     tmux.send_keys 'echo "foo', :Enter, 'bar"', :Enter
