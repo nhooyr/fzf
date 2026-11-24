@@ -1169,6 +1169,22 @@ class TestFish < TestBase
       assert_equal block.lines.map(&:chomp), lines
     end
   end
+
+  def test_ctrl_r_inherits_non_exported_history_session
+    capture = tempname
+    tmux.send_keys %(set -gx FZF_TEST_CAPTURE #{capture}; function fzf; command sh -c 'printf "%s" "${fish_history-UNSET}" > "$FZF_TEST_CAPTURE"'; end), :Enter
+    tmux.prepare
+    ['fzf_session_custom', ''].each do |session|
+      tmux.send_keys %(set -gu fish_history '#{session}'; bind \\cr fzf-history-widget), :Enter
+      tmux.prepare
+      FileUtils.rm_f(capture)
+      tmux.send_keys 'C-r'
+      wait { File.exist?(capture) }
+      assert_equal session, File.read(capture)
+    end
+  ensure
+    FileUtils.rm_f(capture)
+  end
 end
 
 class TestNushell < TestBase

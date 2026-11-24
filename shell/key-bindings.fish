@@ -129,6 +129,7 @@ function fzf_key_bindings
   end
 
   function fzf-history-widget -d "Show command history"
+    set -q fish_history; and set --function --export fish_history "$fish_history"
     set -l -- command_line (commandline)
     set -l -- current_line (commandline -L)
     set -l -- total_lines (count $command_line)
