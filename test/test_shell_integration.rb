@@ -1169,6 +1169,19 @@ class TestFish < TestBase
       assert_equal block.lines.map(&:chomp), lines
     end
   end
+
+  def test_ctrl_r_replaces_first_line
+    tmux.send_keys 'echo fzf_history_replacement', :Enter
+    tmux.prepare
+    tmux.send_keys 'function fzf_test_multiline; commandline -- before middle after; commandline -C 0; end; bind \\cg fzf_test_multiline', :Enter
+    tmux.prepare
+    tmux.send_keys 'C-g', 'C-r'
+    tmux.until { |lines| assert lines.last&.start_with?('> before') }
+    tmux.send_keys 'C-u', 'fzf_history_replacement'
+    tmux.until { |lines| assert_equal 1, lines.match_count }
+    tmux.send_keys :Enter
+    tmux.until { |lines| assert_equal ['echo fzf_history_replacement', 'middle', 'after'], lines }
+  end
 end
 
 class TestNushell < TestBase
