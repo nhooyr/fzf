@@ -113,7 +113,7 @@ function fzf_complete -w fzf -d 'fzf command completion and wildcard expansion s
       set -- token (string replace -ra -- '\\n' '\\\\n' $token | string collect)
     end
 
-    set -- list (complete -C --escape -- (string join -- ' ' (commandline -pc $cl_tokenize_opt) $token | string collect))
+    set -l -- list (complete -C --escape -- (string join -- ' ' (commandline -pc $cl_tokenize_opt) $token | string collect))
     if test -n "$list"
       # Get the initial tabstop value
       if set -l -- tabstop (string match -rga -- '--tabstop[= ](?:0*)([1-9]\\d+|[4-9])' "$FZF_DEFAULT_OPTS")[-1]
