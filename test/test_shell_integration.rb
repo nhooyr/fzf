@@ -1169,6 +1169,20 @@ class TestFish < TestBase
       assert_equal block.lines.map(&:chomp), lines
     end
   end
+
+  def test_completion_preserves_quoted_arguments
+    tmux.send_keys %q(complete -c fzf_quote_test -f -n 'contains -- "$FZF_TEST_TOKEN" (commandline -opc)' -a feature), :Enter
+    ['two words', "single'quote", 'dollar$sign', 'semi;colon', 'back\\slash'].each do |argument|
+      tmux.prepare
+      tmux.send_keys "set -gx FZF_TEST_TOKEN #{argument.shellescape}", :Enter
+      tmux.prepare
+      command = "fzf_quote_test #{argument.shellescape} fe"
+      tmux.send_keys command, :BTab
+      tmux.until { |lines| assert_equal 1, lines.match_count }
+      tmux.send_keys :Enter
+      tmux.until { |lines| assert_equal "#{command}ature", lines.last }
+    end
+  end
 end
 
 class TestNushell < TestBase
